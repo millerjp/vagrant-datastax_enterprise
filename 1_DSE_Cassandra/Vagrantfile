@@ -24,6 +24,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.provision :shell, :inline => "sudo gem install rmate"
       config.vm.provision :shell, :inline => "sudo echo 'export RMATE_HOST=192.168.180.1' >> /etc/profile"    
       
+      #Allo root login
+      config.vm.provision :shell, :inline => "sudo sed -i 's/PermitRootLogin.*$/PermitRootLogin yes/' /etc/ssh/sshd_config"
+      config.vm.provision :shell, :inline => "sudo service ssh restart"
+      
       config.vm.network :private_network, ip: val[:ip]
       config.vm.provision :shell, :inline => "cp -fv /vagrant/config/hosts /etc/hosts"
       config.vm.provision :shell, :inline => "echo '#{val[:name]}' > /etc/hostname"
