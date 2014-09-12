@@ -17,8 +17,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         v.customize ["modifyvm", :id, "--memory", val[:memory]]
         v.customize ["modifyvm", :id, "--cpus", val[:cpus] ]
 
-        config.vm.provision :shell, :inline => "sudo apt-get update"
-        config.vm.provision :shell, :inline => "sudo apt-get upgrade -y"      
+      config.vm.provision :shell, :inline => "sudo apt-get update"
+      config.vm.provision :shell, :inline => "sudo apt-get upgrade -y"  
+      
+      #Install rmate to connect to TextMate on host MacBook for text editing
+      config.vm.provision :shell, :inline => "sudo gem install rmate"
+      config.vm.provision :shell, :inline => "sudo echo 'export RMATE_HOST=192.168.180.1' >> /etc/profile"    
       
       config.vm.network :private_network, ip: val[:ip]
       config.vm.provision :shell, :inline => "cp -fv /vagrant/config/hosts /etc/hosts"
