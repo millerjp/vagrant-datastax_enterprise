@@ -1,0 +1,93 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+boxes = [
+  { :name => 'dse-cass-1node', :ip => '192.168.180.150', :seeds => '192.168.180.150', :dc => 'DataCenter1', :rack => 'rack1', :cpus =>2, :memory => 2048 }
+]
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "ubuntu/trusty64"
+  
+  config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+  boxes.each do |val|
+    config.vm.define val[:name] do |config|
+      
+      config.vm.provider :virtualbox do |v|
+        v.customize ["modifyvm", :id, "--memory", val[:memory]]
+        v.customize ["modifyvm", :id, "--cpus", val[:cpus] ]
+
+        config.vm.provision :shell, :inline => "sudo apt-get update"
+        config.vm.provision :shell, :inline => "sudo apt-get upgrade -y"      
+      
+      config.vm.network :private_network, ip: val[:ip]
+      config.vm.provision :shell, :inline => "cp -fv /vagrant/config/hosts /etc/hosts"
+      config.vm.provision :shell, :inline => "echo '#{val[:name]}' > /etc/hostname"
+      config.vm.provision :shell, :inline => "sudo hostname #{val[:name]}"
+      
+      config.vm.provision :shell, :inline => "sudo apt-get install squid-deb-proxy-client avahi-utils -y"
+      config.vm.provision :shell, :inline => "sudo apt-get install python-software-properties -y"
+      
+      #Install Git
+      config.vm.provision :shell, :inline => "sudo apt-get install git -y"
+      
+      #Install GO Lang
+      config.vm.provision :shell, :inline => "sudo apt-get install golang -y"
+      config.vm.provision :shell, :inline => "sudo echo 'export GOPATH=/usr/share/go/' >> /etc/profile"
+      config.vm.provision :shell, :inline => "sudo echo 'export PATH=$PATH:$GOPATH/bin' >> /etc/profile"
+      
+      #PC Stat
+      config.vm.provision :shell, :inline => "go get github.com/tobert/pcstat"
+      
+      
+      config.vm.provision :shell, :path => "config/repo.sh"  
+      config.vm.provision :shell, :path => "config/misc.sh"    
+      config.vm.provision :shell, :path => "config/java.sh"
+      config.vm.provision :shell, :path => "config/dse.sh"  
+      
+      #Confifgure DSE                  
+      config.vm.provision :shell, :inline => "sed -i 's/cluster_name:.*$/cluster_name: 1_Node_Cassandra/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/listen_address:.*$/listen_address: #{val[:ip]}/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/rpc_address:.*$/rpc_address: #{val[:ip]}/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/seeds:.*$/seeds: \"#{val[:seeds]}\"/' /etc/dse/cassandra/cassandra.yaml"      
+      config.vm.provision :shell, :inline => "sed -i 's/concurrent_reads:.*$/concurrent_reads: 16/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/concurrent_writes:.*$/concurrent_reads: 16/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/rpc_server_type:.*$/rpc_server_type: hsha/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/auto_snapshot:.*$/auto_snapshot: false/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/internode_compression:.*$/internode_compression: none/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/delegated_snitch:.*$/delegated_snitch: org.apache.cassandra.locator.GossipingPropertyFileSnitch/' /etc/dse/dse.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/dc=.*$/dc=#{val[:dc]}/' /etc/dse/cassandra/cassandra-rackdc.properties"
+      config.vm.provision :shell, :inline => "sed -i 's/rack=.*$/rack=#{val[:rack]}/' /etc/dse/cassandra/cassandra-rackdc.properties"
+      
+      #Double check defaulst are not set for extea-DSE features
+      config.vm.provision :shell, :inline => "sed -i 's/HADOOP_ENABLED=.*$/HADOOP_ENABLED=0/' /etc/default/dse"
+      config.vm.provision :shell, :inline => "sed -i 's/SOLR_ENABLED=.*$/SOLR_ENABLED=0/' /etc/default/dse"
+      config.vm.provision :shell, :inline => "sed -i 's/SPARK_ENABLED=.*$/SPARK_ENABLED=0/' /etc/default/dse"
+      config.vm.provision :shell, :inline => "sed -i 's/CFS_ENABLED=.*$/CFS_ENABLED=0/' /etc/default/dse"
+        
+        
+        
+        
+        
+        # Configure address.yaml for datastax-agent
+        #config.vm.provision :shell, :inline => "echo 'stomp_interface: 192.168.180.100' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'stomp_port: 61620' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'local_interface: #{val[:ip]}' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'agent_rpc_interface: #{val[:ip]}' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'agent_rpc_broadcast_address: #{val[:ip]}' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'use_ssl: 0' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'metrics_enabled: true' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'thrift_port: 9160' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'jmx_host: #{val[:ip]}' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'jmx_port: 7199' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'api_port: 61621' >> /etc/datastax-agent/address.yaml"
+        #config.vm.provision :shell, :inline => "echo 'runs_sudo: true' >> /etc/datastax-agent/address.yaml"
+        
+      config.vm.provision :shell, :inline => "service dse restart"
+        
+
+    end
+  end
+end
+
+end
