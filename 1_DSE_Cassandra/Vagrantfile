@@ -56,6 +56,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.provision :shell, :inline => "sudo echo 'export CQLSH_HOST=#{val[:name]}' >> /etc/profile"
       
       #Confifgure DSE                  
+      config.vm.provision :shell, :inline => "sed -i 's/initial_token:/#initial_token:/' /etc/dse/cassandra/cassandra.yaml"
+      config.vm.provision :shell, :inline => "sed -i 's/#num_tokens: 256/num_tokens: 256/' /etc/dse/cassandra/cassandra.yaml"
+      
       config.vm.provision :shell, :inline => "sed -i 's/cluster_name:.*$/cluster_name: 1_Node_Cassandra/' /etc/dse/cassandra/cassandra.yaml"
       config.vm.provision :shell, :inline => "sed -i 's/listen_address:.*$/listen_address: #{val[:ip]}/' /etc/dse/cassandra/cassandra.yaml"
       config.vm.provision :shell, :inline => "sed -i 's/rpc_address:.*$/rpc_address: #{val[:ip]}/' /etc/dse/cassandra/cassandra.yaml"
