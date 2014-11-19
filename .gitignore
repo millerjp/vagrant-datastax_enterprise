@@ -1,3 +1,6 @@
 
 .vagrant
 1_DSE_Cassandra/.vagrant
+2_DSE_Cassandra/.vagrant
+dse/.vagrant
+squid-deb-proxy/.vagrant
